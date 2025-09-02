@@ -29,15 +29,15 @@ def read_label(file_path, suffix = '.txt'):
     Args:
         file_path [string]: path to label file (txt)
     
-    Returns: Dict with following key
-        name [np.ndarray string, (n, )]: name of the object category in image, include Car, Pedestrian, Cyclist, DontCare
-        truncated [np.ndarray float32, (n, )]: how much the object extend outside the image, from 0.0 -> 1.0
-        occluded [np.ndarray float32, (n, )]: how much the objet is block by others, from 0 -> 3 (fully visible -> unknow)
-        alpha [np.ndarray float32, (n, )]: observation agle of the object in camera coordinate (radian)
-        bbox [np.ndarray float32, (n, 4)]: 2d bounding box in x_min, y_min, x_max, y_max
-        dimensions [np.ndarray float32, (n, 3)]: 3d dimension in legnth, height, width
-        location [np.ndarray float32, (n, 3)]: 3d location of the object center in camera coordinate, include x, y, z (right, down, forward)
-        rotation_y [np.ndarray float32, (n, )]: rotation of the object around y-axis (radian)
+    Returns: Dict with following key, m is the number of objects in 1 sample
+        name [np.ndarray string, (m, )]: name of the object category in image, include Car, Pedestrian, Cyclist, DontCare
+        truncated [np.ndarray float32, (m, )]: how much the object extend outside the image, from 0.0 -> 1.0
+        occluded [np.ndarray float32, (m, )]: how much the objet is block by others, from 0 -> 3 (fully visible -> unknow)
+        alpha [np.ndarray float32, (m, )]: observation agle of the object in camera coordinate (radian)
+        bbox [np.ndarray float32, (m, 4)]: 2d bounding box in x_min, y_min, x_max, y_max
+        dimensions [np.ndarray float32, (m, 3)]: 3d dimension in legnth, height, width
+        location [np.ndarray float32, (m, 3)]: 3d location of the object center in camera coordinate, include x, y, z (right, down, forward)
+        rotation_y [np.ndarray float32, (m, )]: rotation of the object around y-axis (radian)
     """
     assert os.path.splitext(file_path)[1] == suffix
     
@@ -87,14 +87,14 @@ def read_calib(file_path, extend_matrix=True):
     Returns: Dict with following keys
         In case extend_matrix = False:
         P0, P1, P2, P3 [np.ndarray float32, (3, 4)]: projection matrix, convert 3D camera coordinate to 2D pixel coordinate
-        R0_rect [np.ndarray float32, (3, 3)]: rectification matrix, convert camera coordinate to camera rectified coordinate
-        Tr_velo_to_cam [np.ndarray float32, (3, 4)]: convert lidar point coordinate to 3D camera coordinate
+        R0_rect [np.ndarray float32, (3, 3)]: rectification matrix of camera, allign all cameras into a common coordinate
+        Tr_velo_to_cam [np.ndarray float32, (3, 4)]: transformation matrix from LiDAR to camera
         Tr_imu_to_velo [np.ndarray float32, (3, 4)]: convert IMU coordinate to lidar coordinate
         
         In case extend_matrix = True: 
         P0, P1, P2, P3 [np.ndarray float32, (4, 4)]: projection matrix, convert 3D camera coordinate to 2D pixel coordinate
-        R0_rect [np.ndarray float32, (4, 4)]: rectification matrix, convert camera coordinate to camera rectified coordinate
-        Tr_velo_to_cam [np.ndarray float32, (4, 4)]: convert lidar point coordinate to 3D camera coordinate
+        R0_rect [np.ndarray float32, (4, 4)]: rectification matrix of camera, allign all cameras into a common coordinate
+        Tr_velo_to_cam [np.ndarray float32, (4, 4)]: transformation matrix from LiDAR to camera
         Tr_imu_to_velo [np.ndarray float32, (4, 4)]: convert IMU coordinate to lidar coordinate        
     """
     with open(file_path, 'r') as f:

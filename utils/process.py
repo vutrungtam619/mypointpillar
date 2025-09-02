@@ -666,17 +666,15 @@ def get_points_num_in_bbox(points, r0_rect, tr_velo_to_cam, dimensions, location
 def remove_outside_points(points, r0_rect, tr_velo_to_cam, P2, image_shape):
     """Remove points which are outside of image.
     Args:
-        points (np.ndarray, shape=[N, 3+dims]): Total points.
-        rect (np.ndarray, shape=[4, 4]): Matrix to project points in
-            specific camera coordinate (e.g. CAM2) to CAM0.
-        Trv2c (np.ndarray, shape=[4, 4]): Matrix to project points in
-            camera coordinate to lidar coordinate.
-        P2 (p.array, shape=[4, 4]): Intrinsics of Camera2.
-        image_shape (list[int]): Shape of image.
+        points [np.ndarray float32, (N, 4)]: total LiDAR points
+        r0_rect [np.ndarray float32, (4, 4)]: rectification matrix of camera, allign all cameras into a common coordinate
+        tr_velo_to_cam [np.ndarray float32, (4, 4)]: transformation matrix from LiDAR to camera
+        P2 [np.ndarray float32, (4, 4)]: projection matrix, convert 3D camera coordinate to 2D pixel coordinate
+        
     Returns:
-        np.ndarray, shape=[N, 3+dims]: Filtered points.
+        points [np.ndarray float32, (n, 4)]: reduced LiDAR points (in image)
     """
-    # 5x faster than remove_outside_points_v1(2ms vs 10ms)
+    
     C, R, T = projection_matrix_to_CRT_kitti(P2)
     image_bbox = [0, 0, image_shape[1], image_shape[0]]
     frustum = get_frustum(image_bbox, C)
@@ -697,9 +695,12 @@ def projection_matrix_to_CRT_kitti(proj):
     C is upper triangular matrix, so we need to inverse CR and use QR
     stable for all kitti camera projection matrix.
     Args:
-        proj (p.array, shape=[4, 4]): Intrinsics of camera.
+        proj [np.ndarray float32, (4, 4)]: projection matrix, convert 3D camera coordinate to 2D pixel coordinate
+        
     Returns:
-        tuple[np.ndarray]: Splited matrix of C, R and T.
+        C [np.ndarray float32, (3, 3)]: intrinsic matrix
+        R [np.ndarray float32, (3, 3)]: rotation matrix
+        T [np.ndarray float32, (3, 3)]: translation matrix
     """
 
     CR = proj[0:3, 0:3]
@@ -709,6 +710,7 @@ def projection_matrix_to_CRT_kitti(proj):
     C = np.linalg.inv(Cinv)
     R = np.linalg.inv(Rinv)
     T = Cinv @ CT
+    
     return C, R, T
 
 
@@ -716,29 +718,55 @@ def projection_matrix_to_CRT_kitti(proj):
 def get_frustum(bbox_image, C, near_clip=0.001, far_clip=100):
     """Get frustum corners in camera coordinates.
     Args:
-        bbox_image (list[int]): box in image coordinates.
-        C (np.ndarray): Intrinsics.
-        near_clip (float, optional): Nearest distance of frustum.
-            Defaults to 0.001.
-        far_clip (float, optional): Farthest distance of frustum.
-            Defaults to 100.
+        bbox_image [list int, [4]]: bounding box of image in pixel coordinate, include x_min, y_min, x_max, y_max
+        C [np.ndarray float32, (3, 3)]: intrinsic matrix
+        
     Returns:
-        np.ndarray, shape=[8, 3]: coordinates of frustum corners.
+        ret_xyz [np.ndarray float32, (8, 3)]: 8 corners of frustum in camera coordinate
     """
+    
     fku = C[0, 0]
     fkv = -C[1, 1]
     u0v0 = C[0:2, 2]
-    z_points = np.array(
-        [near_clip] * 4 + [far_clip] * 4, dtype=C.dtype)[:, np.newaxis]
+    z_points = np.array([near_clip] * 4 + [far_clip] * 4, dtype=C.dtype)[:, np.newaxis]
     b = bbox_image
-    box_corners = np.array(
-        [[b[0], b[1]], [b[0], b[3]], [b[2], b[3]], [b[2], b[1]]],
-        dtype=C.dtype)
-    near_box_corners = (box_corners - u0v0) / np.array(
-        [fku / near_clip, -fkv / near_clip], dtype=C.dtype)
-    far_box_corners = (box_corners - u0v0) / np.array(
-        [fku / far_clip, -fkv / far_clip], dtype=C.dtype)
-    ret_xy = np.concatenate([near_box_corners, far_box_corners],
-                            axis=0)  # [8, 2]
+    box_corners = np.array([[b[0], b[1]], [b[0], b[3]], [b[2], b[3]], [b[2], b[1]]], dtype=C.dtype)
+    near_box_corners = (box_corners - u0v0) / np.array([fku / near_clip, -fkv / near_clip], dtype=C.dtype)
+    far_box_corners = (box_corners - u0v0) / np.array([fku / far_clip, -fkv / far_clip], dtype=C.dtype)
+    ret_xy = np.concatenate([near_box_corners, far_box_corners], axis=0)  # [8, 2]
     ret_xyz = np.concatenate([ret_xy, z_points], axis=1)
+    
     return ret_xyz
+
+def project_point_to_camera(point, calib, eps=1e-6):
+    """ Project mean centers of pillars to camera image coordinates.
+    Args: 
+        point (torch.Tensor): shape (P1 + P2 + ... + Pb, 3) where P1 + P2 + ... + Pb is the total number of pillars in the batch.
+        calib (dict): calibration dictionary containing 'Tr_velo_to_cam', 'R0_rect', and 'P2' matrices. All matrix is 4x4.
+        
+    Returns:
+        u (torch.Tensor): horizontal pixel coordinates in the camera image. Shape (P1 + P2 + ... + Pb,).
+        v (torch.Tensor): vertical pixel coordinates in the camera image. Shape (P1 + P2 + ... + Pb,).     
+    """              
+    device = point.device
+    N = point.shape[0]
+
+    # Convert calib matrices to 4x4 format for homogeneous computation
+    Tr = torch.as_tensor(calib['Tr_velo_to_cam'], device=device, dtype=torch.float32)
+    R0 = torch.as_tensor(calib['R0_rect'], device=device, dtype=torch.float32)
+    P2 = torch.as_tensor(calib['P2'], device=device, dtype=torch.float32)         
+
+    combined_transform = P2 @ R0 @ Tr  # (4x4)
+    
+    # Homogeneous coordinates
+    pts_velo_hom = torch.nn.functional.pad(point, (0, 1), value=1.0)  # (N,4)
+
+    # Transform
+    pts_cam = pts_velo_hom @ combined_transform.T  # (N,4)
+
+    # Project to image
+    z = pts_cam[:, 2].clamp(min=eps)
+    u = pts_cam[:, 0] / z
+    v = pts_cam[:, 1] / z
+
+    return u, v
