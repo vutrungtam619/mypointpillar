@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 from utils.io import read_pickle, read_points
 from utils.process import bbox_camera2lidar
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+project_root = os.path.dirname(os.path.dirname(__file__))
 
 def point_range_filter(data_dict, point_range):
     '''
