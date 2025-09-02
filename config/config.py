@@ -21,8 +21,8 @@ config = {
     'batch_size': 8,
     'num_workers': 4,
     'init_lr': 0.00025,
-    'epoch': 20,
+    'epoch': 100,
     'ckpt_freq': 2,
-    'log_freq': 10,
+    'log_freq': 25,
     'log_dir': os.path.join(project_root, 'log')
 }
