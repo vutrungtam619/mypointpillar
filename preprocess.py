@@ -94,7 +94,7 @@ def create_data_info_pkl(data_root, data_type, label):
         # write the reduced_points to bin file
         velodyne_reduced_file_path = os.path.join(velodyne_reduced_folder, f'{id}.bin')
         cur_info_dict['velodyne_path'] = velodyne_reduced_file_path
-        write_points(reduced_points, velodyne_reduced_file_path)
+        write_points(velodyne_reduced_file_path, reduced_points)
         
         if label:
             label_path = os.path.join(data_root, split, 'label_2', f'{id}.txt')
