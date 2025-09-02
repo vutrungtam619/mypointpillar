@@ -7,4 +7,3 @@ from .process import project_point_to_camera, bbox_camera2lidar, bbox3d2bevcorne
     get_points_num_in_bbox, iou2d_nearest, iou2d, iou3d_camera, iou_bev, \
     bbox3d2corners_camera, points_camera2image
 from .loss import Loss
-from .vis_o3d import vis_pc, vis_img_3d
