@@ -31,7 +31,7 @@ def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
     
     print("Loading model!.....................")
-    model = Pointpillars().to(device)
+    model = Pointpillars(device=device).to(device)
     print("Finished loading model!............")
     
     loss_func = Loss()
