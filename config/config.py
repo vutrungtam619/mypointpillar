@@ -7,7 +7,7 @@ config = {
     'num_classes': 3,
     'pc_range': [0, -39.68, -3, 69.12, 39.68, 1],
     'voxel_size': [0.16, 0.16, 4],
-    'max_voxels': (16000, 40000),
+    'max_voxels': (12000, 40000),
     'max_points': 32,
     'new_shape': (384, 1280),
     'mean': [0.36783523, 0.38706144, 0.3754649],
@@ -20,9 +20,9 @@ config = {
     'checkpoint_dir': os.path.join(project_root, 'checkpoints'),
     'batch_size': 8,
     'num_workers': 4,
-    'init_lr': 0.00025,
-    'epoch': 80,
+    'init_lr': 0.0001,
+    'epoch': 30,
     'ckpt_freq': 2,
-    'log_freq': 25,
+    'log_freq': 50,
     'log_dir': os.path.join(project_root, 'log')
 }

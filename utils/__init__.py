@@ -7,3 +7,4 @@ from .process import project_point_to_camera, bbox_camera2lidar, bbox3d2bevcorne
     bbox3d2corners_camera, points_camera2image
 from .anchor import Anchors, anchor_target, anchors2bboxes
 from .loss import Loss
+from .vis_o3d import vis_img_3d, vis_pc

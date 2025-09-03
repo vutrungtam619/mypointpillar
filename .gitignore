@@ -1,6 +1,9 @@
 __pycache__
 *.egg-info
 dataset/*.pkl
+dataset/velodyne_reduced
 package/*.pyd
 build/
 kitti/
+image/
+log/*.0

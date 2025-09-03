@@ -46,7 +46,7 @@ def process_sample(idx, args, model, device, CLASSES, pcd_limit_range, save_dir)
             batched_pts=[pc_torch],
             batched_image_paths=[img_path],
             batched_calibs=[calib_info],
-            batched_image_shape=img.shape[:2],
+            batched_image_shape=[img.shape[:2]],
             mode='test'
         )[0]
 
@@ -116,21 +116,24 @@ def main(args):
     model.eval()
     print("Loading model complete!")
 
-    idx = args.start_idx
-    while True:
+    with open(r"dataset\id\val.txt", "r") as f:
+        val_ids = [int(line.strip()) for line in f.readlines() if line.strip()]
+    val_ids = [i for i in val_ids if i >= args.start_idx]
+
+    for idx in val_ids:
+        print(idx)
         if not process_sample(idx, args, model, device, CLASSES, pcd_limit_range, save_dir):
             break
-        idx += 1
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ckpt', default='checkpoints/epoch_60.pth')
+    parser.add_argument('--ckpt', default='checkpoints/epoch_50.pth')
     parser.add_argument('--pc_dir', default='dataset/velodyne_reduced/training')
     parser.add_argument('--calib_dir', default='kitti/training/calib')
     parser.add_argument('--gt_dir', default='kitti/training/label_2')
     parser.add_argument('--img_dir', default='kitti/training/image_2')
-    parser.add_argument('--start_idx', type=int, default=100, help='Sample bắt đầu')
+    parser.add_argument('--start_idx', type=int, default=81)
 
     args = parser.parse_args()
 

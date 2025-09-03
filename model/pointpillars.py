@@ -207,7 +207,7 @@ class PillarEncoder(nn.Module):
 
         # 5. embedding
         features = features.permute(0, 2, 1).contiguous() # (p1 + p2 + ... + pb, 9, num_points)
-        features = F.relu(self.conv(features))  # (p1 + p2 + ... + pb, out_channels, num_points)
+        features = self.conv(features)  # (p1 + p2 + ... + pb, out_channels, num_points)
         pooling_features = torch.max(features, dim=-1)[0] # (p1 + p2 + ... + pb, out_channels)
         
         image_features = []        
@@ -433,10 +433,10 @@ class Pointpillars(nn.Module):
         ]
 
         # val and test
-        self.nms_pre = 300
+        self.nms_pre = 100
         self.nms_thr = 0.1
         self.score_thr = 0.1
-        self.max_num = 100
+        self.max_num = 50
         
     def get_predicted_bboxes_single(self, bbox_cls_pred, bbox_pred, bbox_dir_cls_pred, anchors):
         '''

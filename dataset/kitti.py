@@ -83,6 +83,13 @@ class Kitti(Dataset):
         gt_bboxes_3d = bbox_camera2lidar(gt_bboxes, Tr_velo_to_cam, R0_rect)
         gt_labels = [self.CLASS.get(name, -1) for name in annos_name]
         
+        valid_mask = annos_info['num_points_in_gt'] > 0
+        gt_bboxes_3d = gt_bboxes_3d[valid_mask]
+        gt_labels = np.array(gt_labels)[valid_mask]
+        annos_name = annos_name[valid_mask]
+        num_points_in_gt = annos_info['num_points_in_gt'][valid_mask]
+        difficulty = annos_info['difficulty'][valid_mask]
+        
         image_shape = image_info['image_shape']
         image_path = os.path.join(self.data_root, image_info['image_path'])
         
@@ -91,8 +98,8 @@ class Kitti(Dataset):
             'gt_bboxes_3d': gt_bboxes_3d,
             'gt_labels': np.array(gt_labels),
             'gt_names': annos_name,
-            'num_points_in_gt': annos_info['num_points_in_gt'],
-            'difficulty': annos_info['difficulty'],
+            'num_points_in_gt': num_points_in_gt,
+            'difficulty': difficulty,
             'image_shape': image_shape,
             'image_path': image_path,
             'calib_info': calib_info

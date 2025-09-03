@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class Loss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2.0, beta=1/9, cls_w=1.0, reg_w=2.0, dir_w=0.2):
+    def __init__(self, alpha=0.25, gamma=2.0, beta=1/9, cls_w=1.0, reg_w=2, dir_w=0.2):
         super().__init__()
         self.alpha = 0.25
         self.gamma = 2.0
@@ -12,7 +12,7 @@ class Loss(nn.Module):
         self.reg_w = reg_w
         self.dir_w = dir_w
         self.smooth_l1_loss = nn.SmoothL1Loss(reduction='none', beta=beta)
-        self.dir_cls = nn.CrossEntropyLoss()
+        self.dir_cls = nn.CrossEntropyLoss(label_smoothing=0.1)
     
     def forward(self,
                 bbox_cls_pred,
