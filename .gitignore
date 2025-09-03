@@ -3,6 +3,7 @@ __pycache__
 dataset/*.pkl
 dataset/velodyne_reduced
 package/*.pyd
+checkpoints/*.pth
 build/
 kitti/
 image/
