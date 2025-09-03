@@ -221,8 +221,8 @@ class PillarEncoder(nn.Module):
             h, w = image_map.shape[1:]
             
             u, v = project_point_to_camera(point=cur_mean_center, calib=calib)
-            u = torch.clamp(u, 0, w - 1).long()
-            v = torch.clamp(v, 0, h - 1).long()    
+            u = torch.clamp(u/2, 0, w - 1).long()
+            v = torch.clamp(v/2, 0, h - 1).long()    
             
             img_feat = image_map.permute(1, 2, 0)[v, u] # (pi, out_channels)
             
