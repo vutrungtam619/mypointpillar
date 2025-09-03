@@ -85,36 +85,36 @@ class ImageFeature(nn.Module):
     def forward(self, batch_image_paths, device):
         batch_tensor = self.transform_tensor(batch_image_paths).to(device)
         
-        # Stem
+        # Stem, stride = 1 (B, 16, H, W)
         c0 = self.stem(batch_tensor)
 
-        # Stage1
+        # Stage1, stride = 2 (B, 32, H/2, W/2)
         c1 = self.stage1_down(c0)
         c1 = self.stage1_bn(c1)
         c1 = self.stage1_relu(c1)
         c1 = self.stage1_dw(c1) + c1
 
-        # Stage2
+        # Stage2, stride = 2 (B, 64, H/4, W/4)
         c2 = self.stage2_down(c1)
         c2 = self.stage2_bn(c2)
         c2 = self.stage2_relu(c2)
         c2 = self.stage2_dw(c2) + c2
 
-        # Stage3
+        # Stage3, stride = 2 (B, 128, H/8, W/8)
         c3 = self.stage3_down(c2)
         c3 = self.stage3_bn(c3)
         c3 = self.stage3_relu(c3)
         c3 = self.stage3_dw(c3) + c3
 
         # Multi-scale FPN
-        m1 = self.mid1(c1)
-        m2 = self.mid2(c2)
-        m3 = self.mid3(c3)
+        m1 = self.mid1(c1) # (B, 64, H/2, W/2)
+        m2 = self.mid2(c2) # (B, 64, H/4, W/4)
+        m3 = self.mid3(c3) # (B, 64, H/8, W/8)
 
-        up1 = F.interpolate(m2, size=m1.shape[-2:], mode='bilinear', align_corners=False)
-        up2 = F.interpolate(m3, size=m1.shape[-2:], mode='bilinear', align_corners=False)
+        up1 = F.interpolate(m2, size=m1.shape[-2:], mode='bilinear', align_corners=False) # (B, 64, H/2, W/2)
+        up2 = F.interpolate(m3, size=m1.shape[-2:], mode='bilinear', align_corners=False) # (B, 64, H/2, W/2)
 
-        concat = torch.cat([m1, up1, up2], dim=1)
+        concat = torch.cat([m1, up1, up2], dim=1) # (B, 192, H/2, W/2)
         out = self.last(concat) # (B, out_channels, H/2, W/2)
         
         return out
