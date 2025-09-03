@@ -136,6 +136,24 @@ def anchor_target(batched_anchors, batched_gt_bboxes, batched_gt_labels, assigne
     for i in range(batch_size):
         anchors = batched_anchors[i]
         gt_bboxes, gt_labels = batched_gt_bboxes[i], batched_gt_labels[i]
+        if gt_bboxes.shape[0] == 0:
+            d1, d2, d3, d4, d5 = anchors.size()
+            num_anchors = d1 * d2 * d3 * d4
+
+            multi_labels = torch.full((num_anchors,), nclasses, dtype=torch.long, device=anchors.device)
+            multi_label_weights = torch.ones(num_anchors, dtype=torch.float32, device=anchors.device)
+            multi_bbox_reg = torch.zeros((num_anchors, d5), dtype=torch.float32, device=anchors.device)
+            multi_bbox_reg_weights = torch.zeros(num_anchors, dtype=torch.float32, device=anchors.device)
+            multi_dir_labels = torch.zeros(num_anchors, dtype=torch.long, device=anchors.device)
+            multi_dir_labels_weights = torch.zeros(num_anchors, dtype=torch.float32, device=anchors.device)
+
+            batched_labels.append(multi_labels)
+            batched_label_weights.append(multi_label_weights)
+            batched_bbox_reg.append(multi_bbox_reg)
+            batched_bbox_reg_weights.append(multi_bbox_reg_weights)
+            batched_dir_labels.append(multi_dir_labels)
+            batched_dir_labels_weights.append(multi_dir_labels_weights)
+            continue   
         # what we want to get next ?
         # 1. identify positive anchors and negative anchors  -> cls
         # 2. identify the regresstion values  -> reg
