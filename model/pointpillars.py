@@ -178,7 +178,7 @@ class PillarEncoder(nn.Module):
             nn.Sigmoid()                
         )
         
-    def forward(self, pillars, coors_batch, npoints_per_pillar, batch_image_map, batched_calibs, batch_size):
+    def forward(self, pillars, coors_batch, npoints_per_pillar, batch_image_map, batched_image_shape, batched_calibs, batch_size):
     
         device = pillars.device
         
@@ -218,11 +218,15 @@ class PillarEncoder(nn.Module):
             
             calib = batched_calibs[i]
             image_map = batch_image_map[i] # (out_channels, H/2, W/2)
+
             h, w = image_map.shape[1:]
+            H, W = batched_image_shape[i]
+            scale_u = w / W
+            scale_v = h / H
             
             u, v = project_point_to_camera(point=cur_mean_center, calib=calib)
-            u = torch.clamp(u/2, 0, w - 1).long()
-            v = torch.clamp(v/2, 0, h - 1).long()    
+            u = torch.clamp(u * scale_u, 0, w - 1).long()
+            v = torch.clamp(v * scale_v, 0, h - 1).long()    
             
             img_feat = image_map.permute(1, 2, 0)[v, u] # (pi, out_channels)
             
@@ -542,14 +546,14 @@ class Pointpillars(nn.Module):
             results.append(result)
         return results
     
-    def forward(self, batched_pts, mode='test', batched_gt_bboxes=None, batched_gt_labels=None, batched_image_paths = None, batched_calibs = None):
+    def forward(self, batched_pts, mode='test', batched_gt_bboxes=None, batched_gt_labels=None, batched_image_paths=None, batched_image_shape=None, batched_calibs=None):
         batch_size = len(batched_pts)
         
         image_map = self.image_backbone(batched_image_paths, self.device)
 
         pillars, coors_batch, npoints_per_pillar = self.pillar_layer(batched_pts)
 
-        pillar_features = self.pillar_encoder(pillars, coors_batch, npoints_per_pillar, image_map, batched_calibs, batch_size)
+        pillar_features = self.pillar_encoder(pillars, coors_batch, npoints_per_pillar, image_map, batched_image_shape, batched_calibs, batch_size)
 
         xs = self.backbone(pillar_features)
 

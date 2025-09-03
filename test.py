@@ -46,6 +46,7 @@ def process_sample(idx, args, model, device, CLASSES, pcd_limit_range, save_dir)
             batched_pts=[pc_torch],
             batched_image_paths=[img_path],
             batched_calibs=[calib_info],
+            batched_image_shape=img.shape[:2],
             mode='test'
         )[0]
 

@@ -79,6 +79,7 @@ def main(args):
             batched_labels = data_dict['batched_labels']
             batched_image_paths = data_dict['batched_image_paths']
             batched_calibs = data_dict['batched_calib_info']
+            batched_image_shape = data_dict['batched_image_shape']
 
             # Forward (FP32 normal)
             bbox_cls_pred, bbox_pred, bbox_dir_cls_pred, anchor_target_dict = model(
@@ -86,6 +87,7 @@ def main(args):
                 batched_gt_bboxes=batched_gt_bboxes, 
                 batched_gt_labels=batched_labels,
                 batched_image_paths=batched_image_paths,
+                batched_image_shape=batched_image_shape,
                 batched_calibs=batched_calibs
             )     
             
@@ -166,6 +168,7 @@ def main(args):
                 batched_labels = data_dict['batched_labels']
                 batched_image_paths = data_dict['batched_image_paths']
                 batched_calibs = data_dict['batched_calib_info']
+                batched_image_shape = data_dict['batched_image_shape']
 
                 # Forward (FP32 normal)
                 bbox_cls_pred, bbox_pred, bbox_dir_cls_pred, anchor_target_dict = model(
@@ -173,6 +176,7 @@ def main(args):
                     batched_gt_bboxes=batched_gt_bboxes, 
                     batched_gt_labels=batched_labels,
                     batched_image_paths=batched_image_paths,
+                    batched_image_shape=batched_image_shape,
                     batched_calibs=batched_calibs
                 )     
                 
