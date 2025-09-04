@@ -1,39 +1,13 @@
 import numpy as np
 import os
+import cv2
 from config.config import config
 from torch.utils.data import Dataset
-from utils.io import read_pickle, read_points
-from utils.process import bbox_camera2lidar
+from utils import read_pickle, read_points
+from utils import bbox_camera2lidar
+from dataset.data_aug import fusion_data_augment, point_range_filter
 
 project_root = os.path.dirname(os.path.dirname(__file__))
-
-def point_range_filter(data_dict, point_range):
-    '''
-    Args: dict with the following 
-        pts [np.ndarray float32, (n, 4)]: total LiDAR points in this item
-        gt_bboxes_3d [np.ndarray float32, (m, 7)]: bounding box in LiDAR coordinate
-        gt_labels [np.ndarray int32, (m, )]: numerical labels for each object
-        gt_names [np.ndarray string, (m, )]: object class name
-        num_points_in_gt [np.ndarrat int32, (n, )]: number of points in 1 gt bounding box
-        difficulty [np.ndarray float32, (m, )]: 0 is easy, 1 is moderate, 2 is hard, -1 is not classify
-        image_shape [tuple int32, (2, )]: image shape in (height, width)
-        image_path [string]: full image path
-        calib_info [dict]: calib information        
-        point_range [list float32, (6)]: [x1, y1, z1, x2, y2, z2]
-    Returns: 
-        data_dict
-    '''
-    pts = data_dict['pts']
-    flag_x_low = pts[:, 0] > point_range[0]
-    flag_y_low = pts[:, 1] > point_range[1]
-    flag_z_low = pts[:, 2] > point_range[2]
-    flag_x_high = pts[:, 0] < point_range[3]
-    flag_y_high = pts[:, 1] < point_range[4]
-    flag_z_high = pts[:, 2] < point_range[5]
-    keep_mask = flag_x_low & flag_y_low & flag_z_low & flag_x_high & flag_y_high & flag_z_high
-    pts = pts[keep_mask]
-    data_dict.update({'pts': pts})
-    return data_dict 
 
 class Kitti(Dataset): 
     def __init__(self, data_root, split):
@@ -63,7 +37,7 @@ class Kitti(Dataset):
             num_points_in_gt [np.ndarrat int32, (n, )]: number of points in 1 gt bounding box
             difficulty [np.ndarray float32, (m, )]: 0 is easy, 1 is moderate, 2 is hard, -1 is not classify
             image_shape [tuple int32, (2, )]: image shape in (height, width)
-            image_path [string]: full image path
+            image [np.ndarray]: image
             calib_info [dict]: calib information
         """
         data_info = self.data_infos[self.sorted_ids[index]]
@@ -83,29 +57,26 @@ class Kitti(Dataset):
         gt_bboxes_3d = bbox_camera2lidar(gt_bboxes, Tr_velo_to_cam, R0_rect)
         gt_labels = [self.CLASS.get(name, -1) for name in annos_name]
         
-        valid_mask = annos_info['num_points_in_gt'] > 0
-        gt_bboxes_3d = gt_bboxes_3d[valid_mask]
-        gt_labels = np.array(gt_labels)[valid_mask]
-        annos_name = annos_name[valid_mask]
-        num_points_in_gt = annos_info['num_points_in_gt'][valid_mask]
-        difficulty = annos_info['difficulty'][valid_mask]
-        
         image_shape = image_info['image_shape']
         image_path = os.path.join(self.data_root, image_info['image_path'])
+        image = cv2.imread(image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
         data_dict = {
             'pts': pts,
             'gt_bboxes_3d': gt_bboxes_3d,
             'gt_labels': np.array(gt_labels),
             'gt_names': annos_name,
-            'num_points_in_gt': num_points_in_gt,
-            'difficulty': difficulty,
+            'difficulty': annos_info['difficulty'],
             'image_shape': image_shape,
-            'image_path': image_path,
+            'image': image,
             'calib_info': calib_info
         }
         
-        data_dict = point_range_filter(data_dict=data_dict, point_range=config['pc_range'])
+        if self.split in ['train', 'trainval']:
+            data_dict = fusion_data_augment(data_dict)
+        else:
+            data_dict = point_range_filter(data_dict)
         
         return data_dict
     

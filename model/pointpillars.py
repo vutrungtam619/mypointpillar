@@ -65,14 +65,9 @@ class ImageFeature(nn.Module):
         self.mid3 = nn.Conv2d(128, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         self.last = nn.Conv2d(out_channels*3, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         
-    def transform_tensor(self, batch_image_paths):
+    def transform_tensor(self, batch_images):
         batch_tensor = []
-        for image_path in batch_image_paths:
-            if not os.path.exists(image_path):
-                raise FileNotFoundError(f"{image_path} not found!")
-            image = cv2.imread(image_path)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            
+        for image in batch_images:            
             image_tensor = torch.from_numpy(image).permute(2,0,1).to(dtype=torch.float32).div_(255.0)
             image_tensor = image_tensor.sub_(self.mean).div_(self.std).unsqueeze(0) 
             image_tensor = F.interpolate(image_tensor, size=self.new_shape, mode='bilinear', align_corners=False)
@@ -82,8 +77,8 @@ class ImageFeature(nn.Module):
         batch_tensor = torch.stack(batch_tensor, dim=0) # (B, C, H, W)
         return batch_tensor
         
-    def forward(self, batch_image_paths, device):
-        batch_tensor = self.transform_tensor(batch_image_paths).to(device)
+    def forward(self, batch_images, device):
+        batch_tensor = self.transform_tensor(batch_images).to(device)
         
         # Stem, stride = 1 (B, 16, H, W)
         c0 = self.stem(batch_tensor)
@@ -225,10 +220,19 @@ class PillarEncoder(nn.Module):
             scale_v = h / H
             
             u, v = project_point_to_camera(point=cur_mean_center, calib=calib)
-            u = torch.clamp(u * scale_u, 0, w - 1).long()
-            v = torch.clamp(v * scale_v, 0, h - 1).long()    
-            
-            img_feat = image_map.permute(1, 2, 0)[v, u] # (pi, out_channels)
+            u = torch.clamp(u * scale_u, 0, w - 1)
+            v = torch.clamp(v * scale_v, 0, h - 1)
+
+            u_norm = (u / (w - 1)) * 2 - 1   # (pi,)
+            v_norm = (v / (h - 1)) * 2 - 1   # (pi,)
+            grid = torch.stack([u_norm, v_norm], dim=-1)  # (pi, 2)
+            grid = grid.view(1, -1, 1, 2)  # (1, pi, 1, 2)
+
+            img = image_map.unsqueeze(0)  # (1, out_channels, H, W)
+
+            sampled = F.grid_sample(img, grid, mode="bilinear", align_corners=False)  # (1, out_channels, pi, 1)
+
+            img_feat = sampled.squeeze(0).squeeze(-1).transpose(0, 1)  # (pi, out_channels)
             
             image_features.append(img_feat)
             
@@ -436,7 +440,7 @@ class Pointpillars(nn.Module):
         self.nms_pre = 100
         self.nms_thr = 0.1
         self.score_thr = 0.1
-        self.max_num = 50
+        self.max_num = 30
         
     def get_predicted_bboxes_single(self, bbox_cls_pred, bbox_pred, bbox_dir_cls_pred, anchors):
         '''
@@ -546,10 +550,10 @@ class Pointpillars(nn.Module):
             results.append(result)
         return results
     
-    def forward(self, batched_pts, mode='test', batched_gt_bboxes=None, batched_gt_labels=None, batched_image_paths=None, batched_image_shape=None, batched_calibs=None):
+    def forward(self, batched_pts, mode='test', batched_gt_bboxes=None, batched_gt_labels=None, batched_images=None, batched_image_shape=None, batched_calibs=None):
         batch_size = len(batched_pts)
         
-        image_map = self.image_backbone(batched_image_paths, self.device)
+        image_map = self.image_backbone(batched_images, self.device)
 
         pillars, coors_batch, npoints_per_pillar = self.pillar_layer(batched_pts)
 

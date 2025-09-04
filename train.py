@@ -37,7 +37,7 @@ def main(args):
     loss_func = Loss()
     
     max_iters = len(train_dataloader) * args.epoch    
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.init_lr, betas=(0.9, 0.999), weight_decay=0.02)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.init_lr, betas=(0.9, 0.999), weight_decay=0.05)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=args.init_lr, total_steps=max_iters, pct_start=0.3, anneal_strategy='cos', cycle_momentum=True, base_momentum=0.85, max_momentum=0.95, div_factor=20)    
     
     start_epoch = 0
@@ -77,7 +77,7 @@ def main(args):
             batched_pts = data_dict['batched_pts']
             batched_gt_bboxes = data_dict['batched_gt_bboxes']
             batched_labels = data_dict['batched_labels']
-            batched_image_paths = data_dict['batched_image_paths']
+            batched_images = data_dict['batched_images']
             batched_calibs = data_dict['batched_calib_info']
             batched_image_shape = data_dict['batched_image_shape']
 
@@ -86,7 +86,7 @@ def main(args):
                 batched_pts=batched_pts, mode='train',
                 batched_gt_bboxes=batched_gt_bboxes, 
                 batched_gt_labels=batched_labels,
-                batched_image_paths=batched_image_paths,
+                batched_images=batched_images,
                 batched_image_shape=batched_image_shape,
                 batched_calibs=batched_calibs
             )     
@@ -166,7 +166,7 @@ def main(args):
                 batched_pts = data_dict['batched_pts']
                 batched_gt_bboxes = data_dict['batched_gt_bboxes']
                 batched_labels = data_dict['batched_labels']
-                batched_image_paths = data_dict['batched_image_paths']
+                batched_images = data_dict['batched_images']
                 batched_calibs = data_dict['batched_calib_info']
                 batched_image_shape = data_dict['batched_image_shape']
 
@@ -175,7 +175,7 @@ def main(args):
                     batched_pts=batched_pts, mode='train',
                     batched_gt_bboxes=batched_gt_bboxes, 
                     batched_gt_labels=batched_labels,
-                    batched_image_paths=batched_image_paths,
+                    batched_images=batched_images,
                     batched_image_shape=batched_image_shape,
                     batched_calibs=batched_calibs
                 )     

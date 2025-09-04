@@ -44,7 +44,7 @@ def process_sample(idx, args, model, device, CLASSES, pcd_limit_range, save_dir)
     with torch.no_grad():
         result_filter = model(
             batched_pts=[pc_torch],
-            batched_image_paths=[img_path],
+            batched_images=[img],
             batched_calibs=[calib_info],
             batched_image_shape=[img.shape[:2]],
             mode='test'
@@ -128,7 +128,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ckpt', default='checkpoints/epoch_50.pth')
+    parser.add_argument('--ckpt', default='checkpoints/epoch_40.pth')
     parser.add_argument('--pc_dir', default='dataset/velodyne_reduced/training')
     parser.add_argument('--calib_dir', default='kitti/training/calib')
     parser.add_argument('--gt_dir', default='kitti/training/label_2')
