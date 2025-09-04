@@ -128,12 +128,12 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ckpt', default='checkpoints/epoch_40.pth')
+    parser.add_argument('--ckpt', default='checkpoints/epoch_24.pth')
     parser.add_argument('--pc_dir', default='dataset/velodyne_reduced/training')
     parser.add_argument('--calib_dir', default='kitti/training/calib')
     parser.add_argument('--gt_dir', default='kitti/training/label_2')
     parser.add_argument('--img_dir', default='kitti/training/image_2')
-    parser.add_argument('--start_idx', type=int, default=81)
+    parser.add_argument('--start_idx', type=int, default=1)
 
     args = parser.parse_args()
 

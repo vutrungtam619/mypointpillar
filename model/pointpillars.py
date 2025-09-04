@@ -63,6 +63,7 @@ class ImageFeature(nn.Module):
         self.mid1 = nn.Conv2d(32, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         self.mid2 = nn.Conv2d(64, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         self.mid3 = nn.Conv2d(128, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        
         self.last = nn.Conv2d(out_channels*3, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         
     def transform_tensor(self, batch_images):
@@ -166,10 +167,10 @@ class PillarEncoder(nn.Module):
         )
         
         self.gate_fusion = nn.Sequential(
-            nn.Linear(out_channels * 2, out_channels * 2),
-            nn.LayerNorm(out_channels * 2),
+            nn.Linear(out_channels * 2, out_channels * 4),
+            nn.LayerNorm(out_channels * 4),
             nn.ReLU(inplace=True),
-            nn.Linear(out_channels * 2, out_channels),
+            nn.Linear(out_channels * 4, out_channels),
             nn.Sigmoid()                
         )
         
@@ -241,8 +242,10 @@ class PillarEncoder(nn.Module):
         concat_features = torch.cat([pooling_features, image_features], dim=1) # (p1 + p2 + ... + pb, out_channels * 2)
         
         gate_weight = self.gate_fusion(concat_features) # (p1 + p2 + ... + pb, out_channels)
+        gate_weight = gate_weight + 0.2  
+        gate_weight = gate_weight.clamp(0, 1) 
         
-        gate_features = pooling_features * gate_weight + image_features * (1 - gate_weight) # (p1 + p2 + ... + pb, out_channels)
+        gate_features = pooling_features * (1 - gate_weight) + image_features * gate_weight # (p1 + p2 + ... + pb, out_channels)
         
         # 6. pillar scatter
         batched_canvas = []
